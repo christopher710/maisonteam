@@ -2236,6 +2236,8 @@ renderGenWeek()};
 // Modified generateDay that takes per-child school map
 function generateDayPerChild(date,schoolMap){
 _taskOrder=0;
+// Save existing tasks before generation to know what's new
+const beforeIds=new Set(Object.keys(S.tasks));
 const d=dk(date),day=date.getDay(),wk=weekNum(date);
 const isSat=day===6,isSun=day===0,isWE=isSat||isSun;
 const isMer=day===3;
@@ -2324,13 +2326,22 @@ Object.values(S.recurring).forEach(r=>{
 
 window.doGenDay=function(){
 const sel=window._genDays[0].date;
+const existing=tfd(sel);
+if(existing.length>0){
+  const doneCount=existing.filter(t=>t.done).length;
+  if(doneCount>0&&!confirm('⚠️ Il y a déjà '+existing.length+' tâches dont '+doneCount+' faites.\nLes tâches faites seront gardées.\nContinuer ?'))return;
+}
+const beforeIds=new Set(Object.keys(S.tasks));
 const schoolMap={};
 PETITS.forEach(p=>{schoolMap[p]=window._genSchool[p+'_0']});
 generateDayPerChild(sel,schoolMap);
-pshAll();closeM();toast('✅ Jour généré !');render()};
+// Only push NEW tasks (not overwrite existing)
+Object.keys(S.tasks).forEach(id=>{if(!beforeIds.has(id))psh(id,S.tasks[id])});
+closeM();toast('✅ Jour généré !');render()};
 
 window.doGenWeek=function(){
 const week=window._genDays;
+const beforeIds=new Set(Object.keys(S.tasks));
 let n=0;
 week.forEach((d,i)=>{
   if(window._genSkipDay[i])return;
@@ -2340,7 +2351,9 @@ week.forEach((d,i)=>{
   generateDayPerChild(d.date,schoolMap);
   n++;
 });
-pshAll();closeM();toast('✅ '+n+' jour(s) générés !');render()};
+// Only push NEW tasks
+Object.keys(S.tasks).forEach(id=>{if(!beforeIds.has(id))psh(id,S.tasks[id])});
+closeM();toast('✅ '+n+' jour(s) générés !');render()};
 
 // Keep old genDay/genWeek as aliases for backward compat
 window.genDay=function(noSchool){openGenDay()};
