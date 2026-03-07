@@ -937,6 +937,10 @@ momOrder.forEach(momId=>{
     const realIdx=tasks.indexOf(t);
     const wl=whenLabel(t);
     html+='<div class="sc" style="padding:8px 10px">';
+    html+='<div style="display:flex;flex-direction:column;gap:2px;margin-right:6px">';
+    html+='<div onclick="event.stopPropagation();moveTask(\''+name+'\','+realIdx+',-1)" style="cursor:pointer;font-size:.65rem;opacity:'+(realIdx>0?'1':'.2')+'">⬆️</div>';
+    html+='<div onclick="event.stopPropagation();moveTask(\''+name+'\','+realIdx+',1)" style="cursor:pointer;font-size:.65rem;opacity:'+(realIdx<tasks.length-1?'1':'.2')+'">⬇️</div>';
+    html+='</div>';
     html+='<div class="si">'+t.i+'</div>';
     html+='<div class="sf"><div class="st" style="font-size:.8rem">'+t.n+'</div>';
     html+='<div class="sd">'+wl+'</div></div>';
@@ -960,6 +964,17 @@ if(!S.model[name])return;
 S.model[name].splice(idx,1);
 pushModel();
 toast('🗑️ Tâche retirée');
+openPersonModel(name)};
+
+window.moveTask=function(name,idx,dir){
+if(!S.model[name])return;
+const tasks=S.model[name];
+const newIdx=idx+dir;
+if(newIdx<0||newIdx>=tasks.length)return;
+const tmp=tasks[idx];
+tasks[idx]=tasks[newIdx];
+tasks[newIdx]=tmp;
+pushModel();
 openPersonModel(name)};
 
 window.resetPersonModel=function(name){
@@ -1637,9 +1652,9 @@ if(!t.done){t.done=true;t.doneBy=S.who;toast('✅ Bravo '+S.who+' !');
 // Auto-clear any urgent alert for this task
 Object.keys(S.alerts||{}).forEach(aid=>{if(S.alerts[aid].taskId===id&&!S.alerts[aid].cleared){S.alerts[aid].cleared=true;if(db&&S.fam)db.ref(`f/${S.fam}/alerts/${aid}/cleared`).set(true)}});
 }
-else if(isParent(S.who)){t.done=false;t.doneBy=null;
-  // Reset medsTaken if it's a med task
+else if(isParent(S.who)||t.doneBy===S.who){t.done=false;t.doneBy=null;
   if(t.medsTaken)t.medsTaken=[];
+  toast('↩️ Décochée');
 }
 else return;
 psh(id,t);render()};
