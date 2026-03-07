@@ -420,7 +420,7 @@ db.ref(`f/${S.fam}/modelLibre`).on('value',s=>{S.modelLibre=s.val()||null;initMo
 db.ref(`f/${S.fam}/meds`).on('value',s=>{S.meds=s.val()||{};checkMedAlerts();render()});
 db.ref(`f/${S.fam}/rotations`).on('value',s=>{S.rotations=s.val()||null;initRotations();render()});
 db.ref('.info/connected').on('value',s=>{online=s.val()===true});return true}catch(e){sbar(0);return false}}
-function psh(id,t){if(db&&S.fam){const clean=JSON.parse(JSON.stringify(t));db.ref(`f/${S.fam}/tasks/${id}`).set(clean)}sav()}
+function psh(id,t){if(db&&S.fam){const c={};Object.keys(t).forEach(k=>{if(t[k]!==undefined)c[k]=t[k]});db.ref(`f/${S.fam}/tasks/${id}`).set(c)}sav()}
 function pshAll(){if(db&&S.fam)db.ref(`f/${S.fam}/tasks`).set(S.tasks);sav()}
 function delDB(id){if(db&&S.fam)db.ref(`f/${S.fam}/tasks/${id}`).remove();sav()}
 function sbar(on){const b=document.getElementById('syncBar');b.style.display='block';b.style.background=on?'var(--grn)':'var(--red)';b.textContent=on?'✅ Synchronisé':'📴 Hors ligne';if(on)setTimeout(()=>b.style.display='none',2500)}
