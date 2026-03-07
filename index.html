@@ -420,7 +420,7 @@ db.ref(`f/${S.fam}/modelLibre`).on('value',s=>{S.modelLibre=s.val()||null;initMo
 db.ref(`f/${S.fam}/meds`).on('value',s=>{S.meds=s.val()||{};checkMedAlerts();render()});
 db.ref(`f/${S.fam}/rotations`).on('value',s=>{S.rotations=s.val()||null;initRotations();render()});
 db.ref('.info/connected').on('value',s=>{online=s.val()===true});return true}catch(e){sbar(0);return false}}
-function psh(id,t){try{if(db&&S.fam){const c={};Object.keys(t).forEach(k=>{if(t[k]!==undefined)c[k]=t[k]});db.ref(`f/${S.fam}/tasks/${id}`).set(c)}sav()}catch(e){console.warn('psh error:',e)}}
+function psh(id,t){try{if(!t||!db||!S.fam)return;const c={};Object.keys(t).forEach(k=>{if(t[k]!==undefined)c[k]=t[k]});db.ref(`f/${S.fam}/tasks/${id}`).set(c);sav()}catch(e){console.warn('psh:',e)}}
 function pshAll(){if(db&&S.fam)db.ref(`f/${S.fam}/tasks`).set(S.tasks);sav()}
 function delDB(id){if(db&&S.fam)db.ref(`f/${S.fam}/tasks/${id}`).remove();sav()}
 function sbar(on){const b=document.getElementById('syncBar');b.style.display='block';b.style.background=on?'var(--grn)':'var(--red)';b.textContent=on?'✅ Synchronisé':'📴 Hors ligne';if(on)setTimeout(()=>b.style.display='none',2500)}
@@ -2358,7 +2358,7 @@ const newIds=Object.keys(S.tasks).filter(id=>!beforeIds.has(id));
 toast('✅ '+newIds.length+' tâches générées !');
 render();
 // Push new tasks to Firebase after render
-newIds.forEach(id=>psh(id,S.tasks[id]));
+newIds.forEach(id=>{if(S.tasks[id])psh(id,S.tasks[id])});
 };
 
 window.doGenWeek=function(){
@@ -2376,7 +2376,7 @@ closeM();
 const newIds=Object.keys(S.tasks).filter(id=>!beforeIds.has(id));
 toast('✅ '+n+' jour(s), '+newIds.length+' tâches !');
 render();
-newIds.forEach(id=>psh(id,S.tasks[id]));
+newIds.forEach(id=>{if(S.tasks[id])psh(id,S.tasks[id])});
 };
 
 // Keep old genDay/genWeek as aliases for backward compat
