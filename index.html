@@ -909,6 +909,10 @@ const WHEN_LABELS={always:'Tous les jours',ecole:'Jours d\'école','1,2,3,4,5':'
 function whenLabel(t){
 if(t.when==='always')return'📅 Tous les jours';
 if(t.when==='ecole')return'🏫 Jours d\'école';
+if(t.when==='mercredi')return'📅 Mercredi';
+if(t.when==='vendredi')return'📅 Vendredi';
+if(t.when==='samedi')return'📅 Samedi';
+if(t.when==='dimanche')return'📅 Dimanche';
 if(t.days&&t.days.length>0){
   const dn=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
   return'📅 '+t.days.map(d=>dn[d]).join(', ');
@@ -1502,6 +1506,7 @@ ${renderActiveAlerts()}
 <div class="sec"><div class="sec-t">⚠️ Danger</div>
 <div class="sc" onclick="clrDay()"><div class="si">🗑️</div><div class="sf"><div class="st" style="color:var(--red)">Effacer les tâches du jour</div></div></div>
 <div class="sc" onclick="clrAll()"><div class="si">💣</div><div class="sf"><div class="st" style="color:var(--red)">Réinitialiser tout</div></div></div>
+<div class="sc" onclick="diagGen()"><div class="si">🔍</div><div class="sf"><div class="st">Diagnostic génération</div><div class="sd">Voir ce que le générateur voit</div></div></div>
 </div>
 <div class="nav"><div class="ni" onclick="nv('home')"><span class="ic">🏠</span>Accueil</div>
 <div class="ni" onclick="nv('stats')"><span class="ic">📊</span>Stats</div>
@@ -1972,12 +1977,13 @@ F.forEach(fm=>{
   const tasks=S.model[p]||[];
   tasks.forEach(t=>{
     if(t.when==='ecole'&&!ecole)return;
-    if(t.when==='days'&&t.days&&!t.days.includes(day))return;
     if(t.when==='mercredi'&&(!isMer||!ecole))return;
-    if(t.when==='always'||t.when==='ecole'||(t.when==='days'&&t.days&&t.days.includes(day))||t.when==='mercredi'){
-      const mom=t.m||'matin';
-      addTask(d,{n:t.n,c:'perso',i:t.i},'impose',p,mom,true);
-    }
+    if(t.when==='vendredi'&&day!==5)return;
+    if(t.when==='dimanche'&&day!==0)return;
+    if(t.when==='samedi'&&day!==6)return;
+    if(t.when==='days'&&t.days&&!t.days.includes(day))return;
+    const mom=t.m||'matin';
+    addTask(d,{n:t.n,c:'perso',i:t.i},'impose',p,mom,true);
   });
 });
 
@@ -2263,9 +2269,13 @@ PETITS.forEach(p=>{
   const ecole=schoolMap[p]!==undefined?schoolMap[p]:defaultSchool(day);
   const tasks=S.model[p]||[];
   tasks.forEach(t=>{
+    // Check when condition
     if(t.when==='ecole'&&!ecole)return;
-    if(t.when==='days'&&t.days&&!t.days.includes(day))return;
     if(t.when==='mercredi'&&(!isMer||!ecole))return;
+    if(t.when==='vendredi'&&day!==5)return;
+    if(t.when==='dimanche'&&day!==0)return;
+    if(t.when==='samedi'&&day!==6)return;
+    if(t.when==='days'&&t.days&&!t.days.includes(day))return;
     const mom=t.m||'matin';
     addTask(d,{n:t.n,c:'perso',i:t.i},'impose',p,mom,true);
   });
@@ -2277,8 +2287,11 @@ const globEcole=!isWE;
   const tasks=S.model[p]||[];
   tasks.forEach(t=>{
     if(t.when==='ecole'&&!globEcole)return;
-    if(t.when==='days'&&t.days&&!t.days.includes(day))return;
     if(t.when==='mercredi'&&(!isMer||!globEcole))return;
+    if(t.when==='vendredi'&&day!==5)return;
+    if(t.when==='dimanche'&&day!==0)return;
+    if(t.when==='samedi'&&day!==6)return;
+    if(t.when==='days'&&t.days&&!t.days.includes(day))return;
     const mom=t.m||'matin';
     addTask(d,{n:t.n,c:'perso',i:t.i},'impose',p,mom,true);
   });
@@ -2413,6 +2426,42 @@ mc.scrollTop=scrollTop};
 window.clrDay=function(){openM(`<h2>🗑️<button class="mx" onclick="closeM()">✕</button></h2><p style="color:var(--t2);text-align:center;padding:16px">Effacer toutes les tâches du ${dk(S.sel)} ?</p>
 <button class="bd" onclick="doClearDay();closeM()">🗑️ Effacer</button><button class="bp" onclick="closeM()">Annuler</button>`)};
 window.doClearDay=function(){const d=dk(S.sel);Object.keys(S.tasks).forEach(k=>{if(S.tasks[k].date===d)delete S.tasks[k]});pshAll();toast('🗑️ Effacé')};
+
+window.diagGen=function(){
+let msg='=== DIAGNOSTIC ===\n\n';
+const date=S.sel;
+const d=dk(date),day=date.getDay(),wk=weekNum(date);
+const isSat=day===6,isSun=day===0,isWE=isSat||isSun;
+msg+='Date: '+d+' (jour '+day+', '+DFL[day]+')\n';
+msg+='isWE: '+isWE+', isSat: '+isSat+'\n\n';
+msg+='--- MODELES ---\n';
+F.forEach(fm=>{
+  const tasks=S.model[fm.n];
+  msg+=fm.n+': '+(tasks?tasks.length+' tâches':'VIDE/NULL')+'\n';
+  if(tasks&&tasks.length>0){
+    tasks.slice(0,3).forEach(t=>msg+='  - '+t.n+' (when:'+t.when+', m:'+t.m+')\n');
+    if(tasks.length>3)msg+='  ... et '+(tasks.length-3)+' autres\n';
+  }
+});
+msg+='\n--- LIBRE ---\n';
+msg+='modelLibre: '+((S.modelLibre||[]).length)+' tâches\n';
+const libreToday=(S.modelLibre||[]).filter(t=>t.days&&t.days.includes(day));
+msg+='Pour aujourd\'hui: '+libreToday.length+'\n';
+msg+='\n--- ROTATIONS ---\n';
+msg+='rotations: '+((S.rotations||[]).length)+'\n';
+(S.rotations||[]).forEach(r=>{
+  const match=r.days&&r.days.includes(day);
+  msg+='  - '+r.name+' (jours:'+JSON.stringify(r.days)+') '+(match?'✅ MATCH':'❌ pas ce jour')+'\n';
+});
+msg+='\n--- MEDS ---\n';
+msg+='meds: '+Object.keys(S.meds).length+'\n';
+msg+='\n--- TACHES DU JOUR ---\n';
+const today=tfd(date);
+msg+=today.length+' tâches pour '+d+'\n';
+today.slice(0,5).forEach(t=>msg+='  - '+t.name+' → '+t.assignee+' ('+t.moment+')\n');
+if(today.length>5)msg+='  ... et '+(today.length-5)+' autres\n';
+alert(msg);
+};
 window.clrAll=function(){openM(`<h2>💣<button class="mx" onclick="closeM()">✕</button></h2><p style="color:var(--t2);text-align:center;padding:16px">Tout supprimer ? Irréversible !</p>
 <button class="bd" onclick="doReset()">💣 Tout supprimer</button><button class="bp" onclick="closeM()">Annuler</button>`)};
 window.doReset=function(){if(db&&S.fam)db.ref(`f/${S.fam}`).remove();localStorage.removeItem('mt3');
