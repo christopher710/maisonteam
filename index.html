@@ -2373,7 +2373,6 @@ const beforeIds=new Set(Object.keys(S.tasks));
 let n=0;
 week.forEach((d,i)=>{
   if(window._genSkipDay[i])return;
-  if(tfd(d.date).length>0)return;
   const schoolMap={};
   PETITS.forEach(p=>{schoolMap[p]=window._genSchool[p+'_'+i]});
   generateDayPerChild(d.date,schoolMap);
