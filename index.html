@@ -421,7 +421,7 @@ db.ref(`f/${S.fam}/meds`).on('value',s=>{S.meds=s.val()||{};checkMedAlerts();ren
 db.ref(`f/${S.fam}/rotations`).on('value',s=>{S.rotations=s.val()||null;initRotations();render()});
 db.ref('.info/connected').on('value',s=>{online=s.val()===true});return true}catch(e){sbar(0);return false}}
 function psh(id,t){try{if(!t||!db||!S.fam)return;const c={};Object.keys(t).forEach(k=>{if(t[k]!==undefined)c[k]=t[k]});db.ref(`f/${S.fam}/tasks/${id}`).set(c);sav()}catch(e){console.warn('psh:',e)}}
-function pshAll(){if(db&&S.fam)db.ref(`f/${S.fam}/tasks`).set(S.tasks);sav()}
+function pshAll(){if(db&&S.fam){const clean={};Object.keys(S.tasks).forEach(id=>{const t=S.tasks[id];if(!t)return;const c={};Object.keys(t).forEach(k=>{if(t[k]!==undefined)c[k]=t[k]});clean[id]=c});db.ref(`f/${S.fam}/tasks`).set(clean)}sav()}
 function delDB(id){if(db&&S.fam)db.ref(`f/${S.fam}/tasks/${id}`).remove();sav()}
 function sbar(on){const b=document.getElementById('syncBar');b.style.display='block';b.style.background=on?'var(--grn)':'var(--red)';b.textContent=on?'✅ Synchronisé':'📴 Hors ligne';if(on)setTimeout(()=>b.style.display='none',2500)}
 function sav(){try{localStorage.setItem('mt3',JSON.stringify({tasks:S.tasks,recurring:S.recurring,alerts:S.alerts,excluded:S.excluded,model:S.model,modelLibre:S.modelLibre,meds:S.meds,rotations:S.rotations,waGroup:S.waGroup,cfg:S.cfg,fam:S.fam,who:S.who}))}catch(e){console.warn('sav error:',e)}}
@@ -2353,13 +2353,11 @@ const beforeIds=new Set(Object.keys(S.tasks));
 const schoolMap={};
 PETITS.forEach(p=>{schoolMap[p]=window._genSchool[p+'_0']});
 generateDayPerChild(sel,schoolMap);
-// Capture new tasks immediately before Firebase sync can interfere
-const newTasks={};
-Object.keys(S.tasks).forEach(id=>{if(!beforeIds.has(id)&&S.tasks[id])newTasks[id]=Object.assign({},S.tasks[id])});
+const newCount=Object.keys(S.tasks).filter(id=>!beforeIds.has(id)).length;
+pshAll();
 closeM();
-toast('✅ '+Object.keys(newTasks).length+' tâches générées !');
+toast('✅ '+newCount+' tâches générées !');
 render();
-Object.keys(newTasks).forEach(id=>psh(id,newTasks[id]));
 };
 
 window.doGenWeek=function(){
@@ -2373,12 +2371,11 @@ week.forEach((d,i)=>{
   generateDayPerChild(d.date,schoolMap);
   n++;
 });
-const newTasks={};
-Object.keys(S.tasks).forEach(id=>{if(!beforeIds.has(id)&&S.tasks[id])newTasks[id]=Object.assign({},S.tasks[id])});
+const newCount=Object.keys(S.tasks).filter(id=>!beforeIds.has(id)).length;
+pshAll();
 closeM();
-toast('✅ '+n+' jour(s), '+Object.keys(newTasks).length+' tâches !');
+toast('✅ '+n+' jour(s), '+newCount+' tâches !');
 render();
-Object.keys(newTasks).forEach(id=>psh(id,newTasks[id]));
 };
 
 // Keep old genDay/genWeek as aliases for backward compat
