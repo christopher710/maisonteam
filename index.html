@@ -420,7 +420,7 @@ db.ref(`f/${S.fam}/modelLibre`).on('value',s=>{S.modelLibre=s.val()||null;initMo
 db.ref(`f/${S.fam}/meds`).on('value',s=>{S.meds=s.val()||{};checkMedAlerts();render()});
 db.ref(`f/${S.fam}/rotations`).on('value',s=>{S.rotations=s.val()||null;initRotations();render()});
 db.ref('.info/connected').on('value',s=>{online=s.val()===true});return true}catch(e){sbar(0);return false}}
-function psh(id,t){if(db&&S.fam)db.ref(`f/${S.fam}/tasks/${id}`).set(t);sav()}
+function psh(id,t){if(db&&S.fam){const clean=JSON.parse(JSON.stringify(t));db.ref(`f/${S.fam}/tasks/${id}`).set(clean)}sav()}
 function pshAll(){if(db&&S.fam)db.ref(`f/${S.fam}/tasks`).set(S.tasks);sav()}
 function delDB(id){if(db&&S.fam)db.ref(`f/${S.fam}/tasks/${id}`).remove();sav()}
 function sbar(on){const b=document.getElementById('syncBar');b.style.display='block';b.style.background=on?'var(--grn)':'var(--red)';b.textContent=on?'✅ Synchronisé':'📴 Hors ligne';if(on)setTimeout(()=>b.style.display='none',2500)}
@@ -1923,7 +1923,7 @@ if(isExcluded(tpl.n,mom,assignee))return;
 const exists=Object.values(S.tasks).find(t=>t.date===d&&t.name===tpl.n&&t.assignee===assignee&&t.moment===mom);
 if(exists)return;
 const id=uid();const cat=CATS.find(c=>c.id===tpl.c);
-const task={id,name:tpl.n,category:tpl.c,icon:tpl.i||cat?.icon||'✨',type,assignee,date:d,moment:mom,done:false,doneBy:null,routine:routine||false,order:_taskOrder++};
+const task={id,name:tpl.n||'?',category:tpl.c||'autre',icon:tpl.i||cat?.icon||'✨',type:type||'libre',assignee:assignee||null,date:d,moment:mom,done:false,doneBy:null,routine:routine||false,order:_taskOrder++};
 if(tpl.pts)task.pts=tpl.pts;
 S.tasks[id]=task}
 
