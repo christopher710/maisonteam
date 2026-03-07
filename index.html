@@ -420,11 +420,11 @@ db.ref(`f/${S.fam}/modelLibre`).on('value',s=>{S.modelLibre=s.val()||null;initMo
 db.ref(`f/${S.fam}/meds`).on('value',s=>{S.meds=s.val()||{};checkMedAlerts();render()});
 db.ref(`f/${S.fam}/rotations`).on('value',s=>{S.rotations=s.val()||null;initRotations();render()});
 db.ref('.info/connected').on('value',s=>{online=s.val()===true});return true}catch(e){sbar(0);return false}}
-function psh(id,t){if(db&&S.fam){const c={};Object.keys(t).forEach(k=>{if(t[k]!==undefined)c[k]=t[k]});db.ref(`f/${S.fam}/tasks/${id}`).set(c)}sav()}
+function psh(id,t){try{if(db&&S.fam){const c={};Object.keys(t).forEach(k=>{if(t[k]!==undefined)c[k]=t[k]});db.ref(`f/${S.fam}/tasks/${id}`).set(c)}sav()}catch(e){console.warn('psh error:',e)}}
 function pshAll(){if(db&&S.fam)db.ref(`f/${S.fam}/tasks`).set(S.tasks);sav()}
 function delDB(id){if(db&&S.fam)db.ref(`f/${S.fam}/tasks/${id}`).remove();sav()}
 function sbar(on){const b=document.getElementById('syncBar');b.style.display='block';b.style.background=on?'var(--grn)':'var(--red)';b.textContent=on?'✅ Synchronisé':'📴 Hors ligne';if(on)setTimeout(()=>b.style.display='none',2500)}
-function sav(){localStorage.setItem('mt3',JSON.stringify({tasks:S.tasks,recurring:S.recurring,alerts:S.alerts,excluded:S.excluded,model:S.model,modelLibre:S.modelLibre,meds:S.meds,rotations:S.rotations,waGroup:S.waGroup,cfg:S.cfg,fam:S.fam,who:S.who}))}
+function sav(){try{localStorage.setItem('mt3',JSON.stringify({tasks:S.tasks,recurring:S.recurring,alerts:S.alerts,excluded:S.excluded,model:S.model,modelLibre:S.modelLibre,meds:S.meds,rotations:S.rotations,waGroup:S.waGroup,cfg:S.cfg,fam:S.fam,who:S.who}))}catch(e){console.warn('sav error:',e)}}
 function load(){try{const x=JSON.parse(localStorage.getItem('mt3'));if(x){S.tasks=x.tasks||{};S.recurring=x.recurring||{};S.alerts=x.alerts||{};S.excluded=x.excluded||{};S.model=x.model||{};S.modelLibre=x.modelLibre||null;S.meds=x.meds||{};S.rotations=x.rotations||null;S.waGroup=x.waGroup||'';S.cfg=x.cfg;S.fam=x.fam;S.who=x.who}}catch(e){}}
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
 function openM(h){document.getElementById('mc').innerHTML=h;document.getElementById('mo').classList.add('open')}
