@@ -2128,11 +2128,6 @@ window.openGenDay=function(){
 const sel=S.sel;
 const day=sel.getDay();
 const d=dk(sel);
-if(tfd(sel).length>0){
-  openM(`<h2>⚠️<button class="mx" onclick="closeM()">✕</button></h2>
-  <p style="color:var(--t2);text-align:center;padding:16px">Ce jour a déjà des tâches.</p>
-  <button class="bd" onclick="doClearDay();closeM();openGenDay()">🗑️ Effacer et regénérer</button>
-  <button class="bp" onclick="closeM()">Annuler</button>`);return}
 
 // Build per-child school status for this single day
 window._genDays=[{date:sel,dayNum:day,label:DFL[day]+' '+sel.getDate()+'/'+MFR[sel.getMonth()]}];
