@@ -2459,6 +2459,7 @@ const today=tfd(date);
 msg+=today.length+' tâches pour '+d+'\n';
 today.slice(0,5).forEach(t=>msg+='  - '+t.name+' → '+t.assignee+' ('+t.moment+')\n');
 if(today.length>5)msg+='  ... et '+(today.length-5)+' autres\n';
+if(window._genError)msg+='\n🚨 ERREUR: '+window._genError+'\n';
 alert(msg);
 };
 window.clrAll=function(){openM(`<h2>💣<button class="mx" onclick="closeM()">✕</button></h2><p style="color:var(--t2);text-align:center;padding:16px">Tout supprimer ? Irréversible !</p>
