@@ -1420,11 +1420,29 @@ function gcalDate(d){return d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())
   url+='&text='+title;
   url+='&dates='+gcalDate(date)+'/'+gcalDate(endDate);
   url+='&details='+details;
-  if(days>1)url+='&recur=RRULE:FREQ=DAILY;COUNT='+days;
-  window.open(url,'_blank');
+  if(days>1)url+='&recurrence=RRULE:FREQ%3DDAILY%3BCOUNT%3D'+days;
+  window._medCalUrls=window._medCalUrls||[];
+  window._medCalUrls.push(url);
 });
-closeM();
-toast('📅 Calendrier ouvert !');
+if(window._medCalUrls.length===1){
+  window.open(window._medCalUrls[0],'_blank');
+  window._medCalUrls=[];
+  closeM();
+  toast('📅 Calendrier ouvert !');
+} else if(window._medCalUrls.length>1){
+  closeM();
+  setTimeout(()=>{
+    let html='<h2>📅 Rappels à créer <button class="mx" onclick="closeM()">✕</button></h2>';
+    html+='<div style="color:var(--t2);padding:8px 0;text-align:center;font-size:.82rem">Un rappel par moment de prise.<br>Cliquez sur chacun pour l\'ouvrir.</div>';
+    window._medCalUrls.forEach((u,i)=>{
+      const mo=(m.moments||[])[i];
+      const mm=MOMENTS.find(x=>x.id===mo);
+      html+='<div class="sc" onclick="window.open(\''+u.replace(/'/g,"\\'")+'\',\'_blank\');this.style.opacity=0.4"><div class="si">'+(mm?mm.icon:'💊')+'</div><div class="sf"><div class="st">'+(mm?mm.name:mo)+'</div><div class="sd">'+m.name+' → '+(m.hours&&m.hours[mo]?m.hours[mo]:'')+'</div></div></div>';
+    });
+    html+='<button class="bd" onclick="closeM();window._medCalUrls=[]" style="border-color:var(--t3);color:var(--t3);margin-top:12px">✅ Terminé</button>';
+    openM(html);
+  },100);
+}
 setTimeout(()=>openMedsPerson(person),500)};
 
 window.delMed=function(id,person){
@@ -1467,7 +1485,8 @@ html+='<div class="fg"><label>🕐 Heures de prise</label>';
 html+='</div>';
 
 html+='<button class="bp" onclick="saveMedEdit(\''+id+'\')">💾 Enregistrer</button>';
-html+='<button class="bd" onclick="openMedReminder(\''+id+'\',\''+m.person+'\',\''+m.name+'\','+(JSON.stringify(m.hours||{}).replace(/'/g,"\\\'"))+')" style="border-color:#f1c40f;color:#f1c40f">🔔 Créer un rappel calendrier</button>';
+window._medReminderData={id:id,person:m.person,name:m.name,hours:m.hours||{}};
+html+='<button class="bd" onclick="openMedReminder(window._medReminderData.id,window._medReminderData.person,window._medReminderData.name,window._medReminderData.hours)" style="border-color:#f1c40f;color:#f1c40f">🔔 Créer un rappel calendrier</button>';
 html+='<button class="bd" onclick="openMedsPerson(\''+m.person+'\')" style="border-color:var(--t3);color:var(--t3)">↩️ Retour</button>';
 openM(html);
 },100)};
@@ -1924,13 +1943,8 @@ url+='&details='+details;
 
 // Recurrence if more than 1 day
 if(days>1){
-  const untilDate=new Date(date.getTime()+(days-1)*86400000);
-  const until=untilDate.getFullYear()+pad(untilDate.getMonth()+1)+pad(untilDate.getDate())+'T235959Z';
-  url+='&recur=RRULE:FREQ=DAILY;COUNT='+days;
+  url+='&recurrence=RRULE:FREQ%3DDAILY%3BCOUNT%3D'+days;
 }
-
-// 5 min reminder
-url+='&crm=DISPLAY&crmn=5';
 
 window.open(url,'_blank');
 closeM();
