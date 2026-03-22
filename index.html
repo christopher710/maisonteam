@@ -1371,7 +1371,61 @@ const id='med_'+Date.now()+'_'+Math.random().toString(36).substr(2,3);
 S.meds[id]={id,person,name,color:window._medColor,moments:window._medMoments.sort(),hours,stock,seuil};
 pushMeds();
 toast('✅ '+name+' ajouté pour '+person);
-openMedsPerson(person)};
+// Propose to create calendar reminder
+openMedReminder(id,person,name,hours)};
+
+window.openMedReminder=function(medId,person,name,hours){
+closeM();
+setTimeout(()=>{
+const moments=Object.keys(hours).filter(m=>hours[m]);
+if(moments.length===0){openMedsPerson(person);return}
+let html='<h2>🔔 Rappel pour '+name+' <button class="mx" onclick="openMedsPerson(\''+person+'\')">✕</button></h2>';
+html+='<div style="text-align:center;padding:8px 0;color:var(--t2)">Créer un rappel sur Google Calendar ?</div>';
+html+='<div style="padding:8px 0">';
+moments.forEach(mo=>{
+  const mm=MOMENTS.find(x=>x.id===mo);
+  html+='<div style="padding:6px 0;font-size:.85rem">'+(mm?mm.icon+' '+mm.name:mo)+' → <b>'+hours[mo]+'</b></div>';
+});
+html+='</div>';
+html+='<div class="fg"><label>📅 Nombre de jours</label>';
+html+='<div style="display:flex;gap:6px;flex-wrap:wrap">';
+[1,7,14,30,60,90].forEach(d=>{
+  html+='<div class="ci'+(d===30?' sel':'')+'" onclick="sRemDays(this,'+d+')" style="padding:8px 12px;font-size:.8rem;font-weight:700">'+d+'j</div>';
+});
+html+='</div>';
+html+='<input type="number" id="remDays" value="30" min="1" max="365" style="background:var(--card);border:1px solid var(--bdr);color:var(--t1);border-radius:8px;padding:6px;font-size:.85rem;width:80px;margin-top:6px">';
+html+='</div>';
+html+='<button class="bp" onclick="doMedReminder(\''+medId+'\',\''+person+'\')">📅 Ajouter au calendrier</button>';
+html+='<button class="bd" onclick="openMedsPerson(\''+person+'\')" style="border-color:var(--t3);color:var(--t3)">⏭️ Passer</button>';
+openM(html);
+},100)};
+
+window.doMedReminder=function(medId,person){
+const m=S.meds[medId];if(!m)return;
+const days=parseInt(document.getElementById('remDays').value)||30;
+function pad(n){return String(n).padStart(2,'0')}
+function gcalDate(d){return d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'T'+pad(d.getHours())+pad(d.getMinutes())+'00'}
+
+// Create one event per moment
+(m.moments||[]).forEach(mo=>{
+  const h=m.hours&&m.hours[mo]?m.hours[mo]:null;
+  if(!h)return;
+  const today=new Date();
+  const date=new Date(today.getFullYear(),today.getMonth(),today.getDate(),parseInt(h.split(':')[0]),parseInt(h.split(':')[1]));
+  const endDate=new Date(date.getTime()+15*60000);
+  const mm=MOMENTS.find(x=>x.id===mo);
+  const title=encodeURIComponent('💊 '+m.name+' - '+person+(mm?' ('+mm.name+')':''));
+  const details=encodeURIComponent('Rappel MaisonTeam - Médicament '+m.name+' pour '+person);
+  let url='https://calendar.google.com/calendar/render?action=TEMPLATE';
+  url+='&text='+title;
+  url+='&dates='+gcalDate(date)+'/'+gcalDate(endDate);
+  url+='&details='+details;
+  if(days>1)url+='&recur=RRULE:FREQ=DAILY;COUNT='+days;
+  window.open(url,'_blank');
+});
+closeM();
+toast('📅 Calendrier ouvert !');
+setTimeout(()=>openMedsPerson(person),500)};
 
 window.delMed=function(id,person){
 delete S.meds[id];
@@ -1413,6 +1467,7 @@ html+='<div class="fg"><label>🕐 Heures de prise</label>';
 html+='</div>';
 
 html+='<button class="bp" onclick="saveMedEdit(\''+id+'\')">💾 Enregistrer</button>';
+html+='<button class="bd" onclick="openMedReminder(\''+id+'\',\''+m.person+'\',\''+m.name+'\','+(JSON.stringify(m.hours||{}).replace(/'/g,"\\\'"))+')" style="border-color:#f1c40f;color:#f1c40f">🔔 Créer un rappel calendrier</button>';
 html+='<button class="bd" onclick="openMedsPerson(\''+m.person+'\')" style="border-color:var(--t3);color:var(--t3)">↩️ Retour</button>';
 openM(html);
 },100)};
