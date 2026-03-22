@@ -1372,18 +1372,14 @@ S.meds[id]={id,person,name,color:window._medColor,moments:window._medMoments.sor
 pushMeds();
 toast('✅ '+name+' ajouté pour '+person);
 // Propose to create calendar reminder
-window._lastMedId=id;
-openMedReminder(id,person,name)};
+openMedReminder(id,person,name,hours)};
 
-window.openMedReminder=function(medId,person,name){
+window.openMedReminder=function(medId,person,name,hours){
 closeM();
 setTimeout(()=>{
-const m=S.meds[medId];
-if(!m){openMedsPerson(person);return}
-const hours=m.hours||{};
-const moments=Object.keys(hours).filter(k=>hours[k]);
+const moments=Object.keys(hours).filter(m=>hours[m]);
 if(moments.length===0){openMedsPerson(person);return}
-let html='<h2>🔔 Rappel pour '+m.name+' <button class="mx" onclick="openMedsPerson(\''+person+'\')">✕</button></h2>';
+let html='<h2>🔔 Rappel pour '+name+' <button class="mx" onclick="openMedsPerson(\''+person+'\')">✕</button></h2>';
 html+='<div style="text-align:center;padding:8px 0;color:var(--t2)">Créer un rappel sur Google Calendar ?</div>';
 html+='<div style="padding:8px 0">';
 moments.forEach(mo=>{
@@ -1410,25 +1406,23 @@ const days=parseInt(document.getElementById('remDays').value)||30;
 function pad(n){return String(n).padStart(2,'0')}
 function gcalDate(d){return d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'T'+pad(d.getHours())+pad(d.getMinutes())+'00'}
 
-// Build URL for first moment, then open
-const moments=(m.moments||[]).filter(mo=>m.hours&&m.hours[mo]);
-if(moments.length===0){toast('⚠️ Pas d\'heure configurée');return}
-
-const mo=moments[0];
-const h=m.hours[mo];
-const today=new Date();
-const date=new Date(today.getFullYear(),today.getMonth(),today.getDate(),parseInt(h.split(':')[0]),parseInt(h.split(':')[1]));
-const endDate=new Date(date.getTime()+15*60000);
-const mm=MOMENTS.find(x=>x.id===mo);
-const title=encodeURIComponent('💊 '+m.name+' - '+person+(mm?' ('+mm.name+')':''));
-const details=encodeURIComponent('Rappel MaisonTeam - '+m.name+' pour '+person+(moments.length>1?'\nAutres moments: '+moments.slice(1).map(mo2=>{const h2=m.hours[mo2];const mm2=MOMENTS.find(x=>x.id===mo2);return(mm2?mm2.name:mo2)+' '+h2}).join(', '):''));
-let url='https://calendar.google.com/calendar/render?action=TEMPLATE';
-url+='&text='+title;
-url+='&dates='+gcalDate(date)+'/'+gcalDate(endDate);
-url+='&details='+details;
-if(days>1)url+='&recur=RRULE:FREQ=DAILY;COUNT='+days;
-window.open(url,'_blank');
-
+// Create one event per moment
+(m.moments||[]).forEach(mo=>{
+  const h=m.hours&&m.hours[mo]?m.hours[mo]:null;
+  if(!h)return;
+  const today=new Date();
+  const date=new Date(today.getFullYear(),today.getMonth(),today.getDate(),parseInt(h.split(':')[0]),parseInt(h.split(':')[1]));
+  const endDate=new Date(date.getTime()+15*60000);
+  const mm=MOMENTS.find(x=>x.id===mo);
+  const title=encodeURIComponent('💊 '+m.name+' - '+person+(mm?' ('+mm.name+')':''));
+  const details=encodeURIComponent('Rappel MaisonTeam - Médicament '+m.name+' pour '+person);
+  let url='https://calendar.google.com/calendar/render?action=TEMPLATE';
+  url+='&text='+title;
+  url+='&dates='+gcalDate(date)+'/'+gcalDate(endDate);
+  url+='&details='+details;
+  if(days>1)url+='&recur=RRULE:FREQ=DAILY;COUNT='+days;
+  window.open(url,'_blank');
+});
 closeM();
 toast('📅 Calendrier ouvert !');
 setTimeout(()=>openMedsPerson(person),500)};
@@ -1473,7 +1467,7 @@ html+='<div class="fg"><label>🕐 Heures de prise</label>';
 html+='</div>';
 
 html+='<button class="bp" onclick="saveMedEdit(\''+id+'\')">💾 Enregistrer</button>';
-html+='<button class="bd" onclick="openMedReminder(\''+id+'\',\''+m.person+'\',\''+m.name+'\')" style="border-color:#f1c40f;color:#f1c40f">🔔 Créer un rappel calendrier</button>';
+html+='<button class="bd" onclick="openMedReminder(\''+id+'\',\''+m.person+'\',\''+m.name+'\','+(JSON.stringify(m.hours||{}).replace(/'/g,"\\\'"))+')" style="border-color:#f1c40f;color:#f1c40f">🔔 Créer un rappel calendrier</button>';
 html+='<button class="bd" onclick="openMedsPerson(\''+m.person+'\')" style="border-color:var(--t3);color:var(--t3)">↩️ Retour</button>';
 openM(html);
 },100)};
