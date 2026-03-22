@@ -1406,15 +1406,15 @@ const ua=navigator.userAgent||'';
 const isAndroid=/android/i.test(ua);
 const isIOS=/iphone|ipad|ipod/i.test(ua);
 if(isAndroid){
-  // intent:// ouvre l'app Google Calendar si installée, sinon fallback web
-  const params=webUrl.split('?')[1]||'';
-  const intentUrl='intent://calendar.google.com/calendar/r/eventedit?'+params+'#Intent;scheme=https;package=com.google.android.calendar;end';
-  window.location.href=intentUrl;
+  // Sur Android, window.location.href laisse le système ouvrir l'app Calendar
+  // si elle est installée (via App Links), sinon ça ouvre le navigateur
+  const a=document.createElement('a');
+  a.href=webUrl;a.target='_blank';a.rel='noopener';
+  a.click();
 } else if(isIOS){
-  // Sur iOS, tenter le scheme googlecalendar://, fallback après 1.5s
   const params=webUrl.replace('https://calendar.google.com/calendar/r/eventedit','');
   const appUrl='googlecalendar://calendar.google.com/calendar/r/eventedit'+params;
-  const fallback=setTimeout(()=>window.open(webUrl,'_blank'),1500);
+  const fallback=setTimeout(()=>{const a=document.createElement('a');a.href=webUrl;a.target='_blank';a.click()},1500);
   window.location.href=appUrl;
   window.addEventListener('blur',()=>clearTimeout(fallback),{once:true});
 } else {
