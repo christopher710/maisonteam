@@ -1785,6 +1785,7 @@ if(t.category==='medicament'&&t.medIds&&t.medIds.length>0){
   });
   html+='</div>';
   if(allDone)html+='<div style="text-align:center;color:var(--grn);font-weight:700;padding:8px">✅ Tous pris !</div>';
+  html+='<button class="bd" onclick="openReminder(\''+id+'\')" style="border-color:#f1c40f;color:#f1c40f;margin-top:8px">🔔 Rappel</button>';
   openM(html);
   return;
 }
@@ -1804,9 +1805,81 @@ ${t.assignee?`<span class="tp" style="background:${col}">${t.assignee}</span>`:'
 ${t.done?`<div style="color:var(--grn);margin-top:6px">✅ Fait par ${t.doneBy}</div>`:''}
 </div>
 <button class="bp" onclick="doChk('${id}');closeM()">${t.done?'↩️ Remettre':'✅ Fait'}</button>
+<button class="bd" onclick="openReminder('${id}')" style="border-color:#f1c40f;color:#f1c40f">🔔 Rappel</button>
 ${reassignHtml}
 ${canEdit?`<button class="bd" onclick="delT('${id}')">🗑️ Supprimer</button>`:''}`)};;
 window.reas=function(id,n){const t=S.tasks[id];if(!t)return;t.assignee=n;t.type=n?'impose':'libre';psh(id,t);closeM();toast(n?'🔴 Imposé à '+n:'🟢 Libre');render()};
+
+window.openReminder=function(id){
+const t=S.tasks[id];if(!t)return;
+closeM();
+setTimeout(()=>{
+let html='<h2>🔔 Rappel <button class="mx" onclick="closeM()">✕</button></h2>';
+html+='<div style="text-align:center;padding:8px 0;font-weight:700">'+(t.icon||'✨')+' '+t.name+'</div>';
+if(t.assignee)html+='<div style="text-align:center;padding:4px 0"><span class="tp" style="background:'+fc(t.assignee)+'">'+t.assignee+'</span></div>';
+
+// Heure
+const now=new Date();
+const defH=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+html+='<div class="fg"><label>🕐 Heure du rappel</label><input type="time" id="remH" value="'+defH+'" style="background:var(--card);border:1px solid var(--bdr);color:var(--t1);border-radius:8px;padding:8px;font-size:1rem;width:100%"></div>';
+
+// Nombre de jours
+html+='<div class="fg"><label>📅 Nombre de jours</label>';
+html+='<div style="display:flex;gap:6px;flex-wrap:wrap">';
+[1,3,5,7,14,30].forEach(d=>{
+  html+='<div class="ci'+(d===1?' sel':'')+'" onclick="sRemDays(this,'+d+')" style="padding:8px 12px;font-size:.8rem;font-weight:700">'+d+(d===1?' jour':' jours')+'</div>';
+});
+html+='</div>';
+html+='<div style="margin-top:8px;display:flex;align-items:center;gap:8px"><span style="font-size:.75rem;color:var(--t3)">Ou :</span><input type="number" id="remDays" value="1" min="1" max="365" style="background:var(--card);border:1px solid var(--bdr);color:var(--t1);border-radius:8px;padding:6px;font-size:.85rem;width:60px"><span style="font-size:.75rem;color:var(--t3)">jours</span></div>';
+html+='</div>';
+
+html+='<button class="bp" onclick="doReminder(\''+id+'\')" style="margin-top:16px">📅 Ajouter au calendrier</button>';
+html+='<button class="bd" onclick="openD(\''+id+'\')" style="border-color:var(--t3);color:var(--t3)">↩️ Retour</button>';
+openM(html);
+},100)};
+
+window._remDays=1;
+window.sRemDays=function(el,d){
+window._remDays=d;
+document.getElementById('remDays').value=d;
+el.parentElement.querySelectorAll('.ci').forEach(e=>e.classList.remove('sel'));
+el.classList.add('sel')};
+
+window.doReminder=function(id){
+const t=S.tasks[id];if(!t)return;
+const h=document.getElementById('remH').value;
+const days=parseInt(document.getElementById('remDays').value)||1;
+if(!h){toast('⚠️ Choisissez une heure');return}
+
+const date=new Date(t.date+'T'+h+':00');
+const endDate=new Date(date.getTime()+15*60000); // 15 min duration
+
+function pad(n){return String(n).padStart(2,'0')}
+function gcalDate(d){return d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'T'+pad(d.getHours())+pad(d.getMinutes())+'00'}
+
+const title=encodeURIComponent((t.icon||'')+''+t.name+(t.assignee?' - '+t.assignee:''));
+const details=encodeURIComponent('Rappel MaisonTeam'+(t.assignee?' pour '+t.assignee:''));
+const start=gcalDate(date);
+const end=gcalDate(endDate);
+
+let url='https://calendar.google.com/calendar/render?action=TEMPLATE';
+url+='&text='+title;
+url+='&dates='+start+'/'+end;
+url+='&details='+details;
+
+// Recurrence if more than 1 day
+if(days>1){
+  const untilDate=new Date(date.getTime()+(days-1)*86400000);
+  const until=untilDate.getFullYear()+pad(untilDate.getMonth()+1)+pad(untilDate.getDate())+'T235959Z';
+  url+='&recur=RRULE:FREQ=DAILY;COUNT='+days;
+}
+
+// 5 min reminder
+url+='&crm=DISPLAY&crmn=5';
+
+window.open(url,'_blank');
+closeM();
+toast('📅 Calendrier ouvert !');};
 window.delT=function(id){delete S.tasks[id];delDB(id);closeM();toast('🗑️ Supprimée');render()};
 
 // Toggle individual medication taken
