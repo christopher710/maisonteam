@@ -1400,6 +1400,27 @@ html+='<button class="bd" onclick="openMedsPerson(\''+person+'\')" style="border
 openM(html);
 },100)};
 
+// Ouvre Google Calendar dans l'app native si possible, sinon dans le navigateur
+function openCal(webUrl){
+const ua=navigator.userAgent||'';
+const isAndroid=/android/i.test(ua);
+const isIOS=/iphone|ipad|ipod/i.test(ua);
+if(isAndroid){
+  // intent:// ouvre l'app Google Calendar si installée, sinon fallback web
+  const params=webUrl.split('?')[1]||'';
+  const intentUrl='intent://calendar.google.com/calendar/r/eventedit?'+params+'#Intent;scheme=https;package=com.google.android.calendar;end';
+  window.location.href=intentUrl;
+} else if(isIOS){
+  // Sur iOS, tenter le scheme googlecalendar://, fallback après 1.5s
+  const params=webUrl.replace('https://calendar.google.com/calendar/r/eventedit','');
+  const appUrl='googlecalendar://calendar.google.com/calendar/r/eventedit'+params;
+  const fallback=setTimeout(()=>window.open(webUrl,'_blank'),1500);
+  window.location.href=appUrl;
+  window.addEventListener('blur',()=>clearTimeout(fallback),{once:true});
+} else {
+  window.open(webUrl,'_blank');
+}}
+
 window.doMedReminder=function(medId,person){
 const m=S.meds[medId];if(!m)return;
 const days=parseInt(document.getElementById('remDays').value)||30;
@@ -1416,8 +1437,8 @@ function gcalDate(d){return d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())
   const mm=MOMENTS.find(x=>x.id===mo);
   const title=encodeURIComponent('💊 '+m.name+' - '+person+(mm?' ('+mm.name+')':''));
   const details=encodeURIComponent('Rappel MaisonTeam - Médicament '+m.name+' pour '+person);
-  let url='https://calendar.google.com/calendar/render?action=TEMPLATE';
-  url+='&text='+title;
+  let url='https://calendar.google.com/calendar/r/eventedit?';
+  url+='text='+title;
   url+='&dates='+gcalDate(date)+'/'+gcalDate(endDate);
   url+='&details='+details;
   if(days>1)url+='&recurrence=RRULE:FREQ%3DDAILY%3BCOUNT%3D'+days;
@@ -1425,7 +1446,7 @@ function gcalDate(d){return d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())
   window._medCalUrls.push(url);
 });
 if(window._medCalUrls.length===1){
-  window.open(window._medCalUrls[0],'_blank');
+  openCal(window._medCalUrls[0]);
   window._medCalUrls=[];
   closeM();
   toast('📅 Calendrier ouvert !');
@@ -1437,7 +1458,7 @@ if(window._medCalUrls.length===1){
     window._medCalUrls.forEach((u,i)=>{
       const mo=(m.moments||[])[i];
       const mm=MOMENTS.find(x=>x.id===mo);
-      html+='<div class="sc" onclick="window.open(\''+u.replace(/'/g,"\\'")+'\',\'_blank\');this.style.opacity=0.4"><div class="si">'+(mm?mm.icon:'💊')+'</div><div class="sf"><div class="st">'+(mm?mm.name:mo)+'</div><div class="sd">'+m.name+' → '+(m.hours&&m.hours[mo]?m.hours[mo]:'')+'</div></div></div>';
+      html+='<div class="sc" onclick="openCal(window._medCalUrls['+i+']);this.style.opacity=0.4"><div class="si">'+(mm?mm.icon:'💊')+'</div><div class="sf"><div class="st">'+(mm?mm.name:mo)+'</div><div class="sd">'+m.name+' → '+(m.hours&&m.hours[mo]?m.hours[mo]:'')+'</div></div></div>';
     });
     html+='<button class="bd" onclick="closeM();window._medCalUrls=[]" style="border-color:var(--t3);color:var(--t3);margin-top:12px">✅ Terminé</button>';
     openM(html);
@@ -1485,8 +1506,7 @@ html+='<div class="fg"><label>🕐 Heures de prise</label>';
 html+='</div>';
 
 html+='<button class="bp" onclick="saveMedEdit(\''+id+'\')">💾 Enregistrer</button>';
-window._medReminderData={id:id,person:m.person,name:m.name,hours:m.hours||{}};
-html+='<button class="bd" onclick="openMedReminder(window._medReminderData.id,window._medReminderData.person,window._medReminderData.name,window._medReminderData.hours)" style="border-color:#f1c40f;color:#f1c40f">🔔 Créer un rappel calendrier</button>';
+html+='<button class="bd" onclick="saveMedEditThenReminder(\''+id+'\')" style="border-color:#f1c40f;color:#f1c40f">🔔 Créer un rappel calendrier</button>';
 html+='<button class="bd" onclick="openMedsPerson(\''+m.person+'\')" style="border-color:var(--t3);color:var(--t3)">↩️ Retour</button>';
 openM(html);
 },100)};
@@ -1510,6 +1530,18 @@ pushMeds();
 checkMedAlerts();
 toast('💾 Enregistré');
 openMedsPerson(m.person)};
+
+window.saveMedEditThenReminder=function(id){
+const m=S.meds[id];if(!m)return;
+m.seuil=parseInt(document.getElementById('medSeuilEdit').value)||5;
+if(!m.hours)m.hours={};
+(m.moments||[]).forEach(mo=>{
+  const el=document.getElementById('meH_'+mo);
+  if(el)m.hours[mo]=el.value;
+});
+pushMeds();
+toast('💾 Enregistré');
+openMedReminder(id,m.person,m.name,m.hours)};
 
 function renderRecurring(){
 const dayNames=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
@@ -1936,8 +1968,8 @@ const details=encodeURIComponent('Rappel MaisonTeam'+(t.assignee?' pour '+t.assi
 const start=gcalDate(date);
 const end=gcalDate(endDate);
 
-let url='https://calendar.google.com/calendar/render?action=TEMPLATE';
-url+='&text='+title;
+let url='https://calendar.google.com/calendar/r/eventedit?';
+url+='text='+title;
 url+='&dates='+start+'/'+end;
 url+='&details='+details;
 
@@ -1946,7 +1978,7 @@ if(days>1){
   url+='&recurrence=RRULE:FREQ%3DDAILY%3BCOUNT%3D'+days;
 }
 
-window.open(url,'_blank');
+openCal(url);
 closeM();
 toast('📅 Calendrier ouvert !');};
 window.delT=function(id){delete S.tasks[id];delDB(id);closeM();toast('🗑️ Supprimée');render()};
